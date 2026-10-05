@@ -79,3 +79,5 @@ cp .env.example .env
 ```bash
 ./vendor/bin/sail down
 ```
+
+このリポジトリは Tutorial 14 でも使います
