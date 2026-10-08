@@ -28,6 +28,8 @@
         .btn-secondary:hover { background: #F7F8F9; }
         .btn:focus-visible { outline: 2px solid #E8792B; outline-offset: 2px; }
         .error { color: #D6402C; font-size: 0.83rem; margin-top: 0.3rem; }
+        .counter { color: #5B6570; font-size: 0.83rem; margin-top: 0.3rem; text-align: right; }
+        .counter.over { color: #D6402C; font-weight: 700; }
     </style>
 </head>
 <body>
@@ -67,6 +69,7 @@
                 <div class="form-group">
                     <label for="content">本文</label>
                     <textarea id="content" name="content" required>{{ old('content', $post->content) }}</textarea>
+                    <p class="counter" id="content-counter" aria-live="polite"></p>
                     @error('content')
                         <p class="error">{{ $message }}</p>
                     @enderror
@@ -79,5 +82,27 @@
             </form>
         </main>
     </div>
+
+    <script>
+        // 本文の残り字数を表示する（サーバー側の max:140 と同じく、1 文字を 1 字として数える）
+        const LIMIT = 140;
+        const content = document.getElementById('content');
+        const counter = document.getElementById('content-counter');
+
+        function updateCounter() {
+            const length = [...content.value].length;
+            const remaining = LIMIT - length;
+
+            if (remaining >= 0) {
+                counter.textContent = '残り ' + remaining + ' 字';
+            } else {
+                counter.textContent = LIMIT + '字を ' + (-remaining) + ' 字超えています';
+            }
+            counter.classList.toggle('over', remaining < 0);
+        }
+
+        content.addEventListener('input', updateCounter);
+        updateCounter();
+    </script>
 </body>
 </html>
