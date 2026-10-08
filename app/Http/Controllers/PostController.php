@@ -15,6 +15,16 @@ class PostController extends Controller
         return view('posts.index', compact('posts'));
     }
 
+    public function show(Post $post)
+    {
+        $post->load(['user', 'category']);
+
+        // 同じ秒に作られたリプライでも順番が決まるように、id でも並べる
+        $replies = $post->replies()->with('user')->latest()->latest('id')->get();
+
+        return view('posts.show', compact('post', 'replies'));
+    }
+
     public function edit(Post $post)
     {
         $this->authorize('update', $post);
