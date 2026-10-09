@@ -101,20 +101,19 @@
                             </div>
                             <p class="post-title">{{ $post->title }}</p>
                             <p class="post-text">{{ $post->content }}</p>
-                            @canany(['update', 'delete'], $post)
-                                <div class="post-actions">
-                                    @can('update', $post)
-                                        <a href="{{ route('posts.edit', $post) }}">編集</a>
-                                    @endcan
-                                    @can('delete', $post)
-                                        <form action="{{ route('posts.destroy', $post) }}" method="POST" style="display: inline;">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit">削除</button>
-                                        </form>
-                                    @endcan
-                                </div>
-                            @endcanany
+                            <div class="post-actions">
+                                <a href="{{ route('posts.show', $post) }}">返信</a>
+                                @can('update', $post)
+                                    <a href="{{ route('posts.edit', $post) }}">編集</a>
+                                @endcan
+                                @can('delete', $post)
+                                    <form action="{{ route('posts.destroy', $post) }}" method="POST" style="display: inline;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit">削除</button>
+                                    </form>
+                                @endcan
+                            </div>
                         </div>
                     </article>
                 @endforeach
