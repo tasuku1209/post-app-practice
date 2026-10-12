@@ -42,11 +42,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 開発の進め方
 
-### テスト
-
-- 機能を足す・直すときは、テストも書きます（`tests/Feature/`）。
-- `./vendor/bin/sail test` で全部のテストを回し、落ちたら通るまで直します。最後に、結果（通った件数と、直した点）を報告します。
-
 ### プルリクエスト
 
 - PR の本文に、テスト結果と、受け入れ条件との突き合わせを書きます。受け入れ条件を 1 つずつ挙げて、どのテスト（または画面操作）で確かめたかを添えます。
