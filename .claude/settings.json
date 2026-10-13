@@ -1,4 +1,19 @@
 {
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "out=$(./vendor/bin/sail test 2>&1) || { echo 'テストが落ちました。直して、通るまで繰り返してください。' >&2; printf '%s\\n' \"$out\" | tail -n 80 >&2; exit 2; }",
+            "timeout": 300,
+            "statusMessage": "テストを実行中..."
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(./vendor/bin/sail test *)",
