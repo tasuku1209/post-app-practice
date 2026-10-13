@@ -11,7 +11,12 @@ class PostController extends Controller
     public function index()
     {
         // 投稿者とカテゴリをまとめて読み込み、新しい順にならべてタイムラインに渡す
-        $posts = Post::with(['user', 'category'])->latest()->get();
+        // いいねの数（likes_count）と、ログイン中の人がいいね済みか（liked_by_me）も一緒に数える
+        $posts = Post::with(['user', 'category'])
+            ->withCount('likedUsers as likes_count')
+            ->withExists(['likedUsers as liked_by_me' => fn ($query) => $query->where('users.id', auth()->id())])
+            ->latest()
+            ->get();
 
         return view('posts.index', compact('posts'));
     }

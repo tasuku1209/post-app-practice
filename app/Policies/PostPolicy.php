@@ -16,4 +16,10 @@ class PostPolicy
     {
         return $user->id === $post->user_id;
     }
+
+    // いいねは、ログインしている人なら誰のポストにでもできる（自分のポストも含む）
+    public function like(User $user, Post $post): bool
+    {
+        return true;
+    }
 }

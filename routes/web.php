@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LikeController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ReplyController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
     Route::put('/posts/{post}', [PostController::class, 'update'])->name('posts.update');
     Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
+    Route::post('/posts/{post}/like', [LikeController::class, 'store'])->name('likes.store');
+    Route::delete('/posts/{post}/like', [LikeController::class, 'destroy'])->name('likes.destroy');
     Route::post('/posts/{post}/replies', [ReplyController::class, 'store'])->name('replies.store');
     Route::delete('/replies/{reply}', [ReplyController::class, 'destroy'])->name('replies.destroy');
 });
