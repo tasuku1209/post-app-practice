@@ -67,7 +67,21 @@ class PostEditedLabelTest extends TestCase
 
         // 画面に「編集済み」が出るのは 1 件だけ
         $this->assertSame(1, substr_count($response->getContent(), '編集済み'));
-        $response->assertSeeInOrder(['編集するポスト（直した）', '編集済み']);
+
+        // しかも、それは編集したポストの枠の中にある（「編集済み」はタイトルより前に出る）
+        $articles = array_filter(
+            explode('<article', $response->getContent()),
+            fn (string $html) => str_contains($html, 'class="post"')
+        );
+        $this->assertCount(2, $articles);
+        foreach ($articles as $html) {
+            if (str_contains($html, '編集するポスト（直した）')) {
+                $this->assertStringContainsString('編集済み', $html);
+            } else {
+                $this->assertStringContainsString('編集しないポスト', $html);
+                $this->assertStringNotContainsString('編集済み', $html);
+            }
+        }
     }
 
     public function test_他人のポストを編集しようとしても編集済みにならない(): void
@@ -115,9 +129,10 @@ class PostEditedLabelTest extends TestCase
 
         // 編集・削除のボタンは、自分のポストにだけ出る
         $response->assertSee(route('posts.edit', $mine), false);
-        $response->assertSee(route('posts.destroy', $mine), false);
+        // 削除の URL は詳細（返信リンク）と同じなので、削除フォームの action で確かめる
+        $response->assertSee('action="'.route('posts.destroy', $mine).'"', false);
         $response->assertDontSee(route('posts.edit', $others), false);
-        $response->assertDontSee(route('posts.destroy', $others), false);
+        $response->assertDontSee('action="'.route('posts.destroy', $others).'"', false);
 
         $this->actingAs($user)
             ->delete(route('posts.destroy', $mine))
