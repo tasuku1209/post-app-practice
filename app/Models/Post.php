@@ -18,6 +18,12 @@ class Post extends Model
         'content',
     ];
 
+    // 作ったあとに更新された（= 一度でも編集された）ポストかどうか。列を足さず、日時の比較で判定する
+    public function isEdited(): bool
+    {
+        return $this->updated_at->gt($this->created_at);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
