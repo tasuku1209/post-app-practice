@@ -5,11 +5,39 @@ namespace Tests\Feature;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class LikeTest extends TestCase
 {
     use RefreshDatabase;
+
+    // いいねと取り消しは同じ URL（メソッドだけ違う）なので、action では押した状態を見分けられない。
+    // ポストごとの <article> を取り出して、その中のボタンの状態で確かめる
+    private function articleOf(TestResponse $response, Post $post): string
+    {
+        $found = preg_match('#<article class="post" id="post-'.$post->id.'">.*?</article>#s', $response->getContent(), $matches);
+        $this->assertSame(1, $found, "ポスト {$post->id} がタイムラインに出ていません。");
+
+        return $matches[0];
+    }
+
+    // 押した状態: 押した見た目の印が付き、次に押すと取り消す（DELETE）フォームになる
+    private function assertPressed(string $article, int $count): void
+    {
+        $this->assertStringContainsString('class="like-btn liked" aria-pressed="true"', $article);
+        $this->assertStringContainsString('name="_method" value="DELETE"', $article);
+        $this->assertStringContainsString('<span class="like-count">'.$count.'</span>', $article);
+    }
+
+    // 押していない状態: 押した見た目の印は無く、取り消し（DELETE）のフォームでもない
+    private function assertNotPressed(string $article, int $count): void
+    {
+        $this->assertStringContainsString('aria-pressed="false"', $article);
+        $this->assertStringNotContainsString('like-btn liked', $article);
+        $this->assertStringNotContainsString('name="_method" value="DELETE"', $article);
+        $this->assertStringContainsString('<span class="like-count">'.$count.'</span>', $article);
+    }
 
     public function test_タイムラインの各ポストにいいねのボタンと今の数が出る(): void
     {
@@ -44,12 +72,9 @@ class LikeTest extends TestCase
         $this->assertDatabaseHas('likes', ['user_id' => $me->id, 'post_id' => $post->id]);
         $this->assertDatabaseCount('likes', 2);
 
-        $this->actingAs($me)->get(route('posts.index'))
-            ->assertSee('<span class="like-count">2</span>', false)
-            // 押した状態: 次に押すと取り消す（DELETE）フォームになり、押した見た目の印が付く
-            ->assertSee('action="'.route('likes.destroy', $post).'"', false)
-            ->assertDontSee('action="'.route('likes.store', $post).'"', false)
-            ->assertSee('class="like-btn liked" aria-pressed="true"', false);
+        $response = $this->actingAs($me)->get(route('posts.index'));
+
+        $this->assertPressed($this->articleOf($response, $post), 2);
     }
 
     public function test_押した状態のボタンをもう一度押すと数が1つ減って押していない状態に戻る(): void
@@ -64,11 +89,9 @@ class LikeTest extends TestCase
         $this->assertDatabaseMissing('likes', ['user_id' => $me->id, 'post_id' => $post->id]);
         $this->assertDatabaseCount('likes', 1);
 
-        $this->actingAs($me)->get(route('posts.index'))
-            ->assertSee('<span class="like-count">1</span>', false)
-            ->assertSee('action="'.route('likes.store', $post).'"', false)
-            ->assertDontSee('action="'.route('likes.destroy', $post).'"', false)
-            ->assertDontSee('like-btn liked', false);
+        $response = $this->actingAs($me)->get(route('posts.index'));
+
+        $this->assertNotPressed($this->articleOf($response, $post), 1);
     }
 
     public function test_別のアカウントでは自分が押していないポストは押していない見た目のまま数だけが増えている(): void
@@ -81,23 +104,18 @@ class LikeTest extends TestCase
         $this->actingAs($a)->post(route('likes.store', $post));
 
         // A から見ると押した状態、数は 1
-        $this->actingAs($a)->get(route('posts.index'))
-            ->assertSee('action="'.route('likes.destroy', $post).'"', false);
+        $responseA = $this->actingAs($a)->get(route('posts.index'));
+        $this->assertPressed($this->articleOf($responseA, $post), 1);
+        // 誰も押していない別のポストは A から見ても押していないまま
+        $this->assertNotPressed($this->articleOf($responseA, $other), 0);
 
         // 別のアカウントでログインし直す（B は押していない）
         $this->post(route('logout'));
         $this->assertGuest();
 
-        $this->actingAs($b)->get(route('posts.index'))
-            ->assertSee('action="'.route('likes.store', $post).'"', false)
-            ->assertDontSee('action="'.route('likes.destroy', $post).'"', false)
-            ->assertSee('<span class="like-count">1</span>', false)
-            ->assertDontSee('like-btn liked', false);
-
-        // 誰も押していない別のポストは A から見ても押していないまま
-        $this->actingAs($a)->get(route('posts.index'))
-            ->assertSee('action="'.route('likes.store', $other).'"', false)
-            ->assertDontSee('action="'.route('likes.destroy', $other).'"', false);
+        $responseB = $this->actingAs($b)->get(route('posts.index'));
+        $this->assertNotPressed($this->articleOf($responseB, $post), 1);
+        $this->assertNotPressed($this->articleOf($responseB, $other), 0);
     }
 
     public function test_押した状態はポストごとに分かれる(): void
@@ -107,11 +125,10 @@ class LikeTest extends TestCase
         $notLiked = Post::factory()->create();
         $liked->likedUsers()->attach($me);
 
-        $this->actingAs($me)->get(route('posts.index'))
-            ->assertSee('action="'.route('likes.destroy', $liked).'"', false)
-            ->assertSee('action="'.route('likes.store', $notLiked).'"', false)
-            ->assertDontSee('action="'.route('likes.store', $liked).'"', false)
-            ->assertDontSee('action="'.route('likes.destroy', $notLiked).'"', false);
+        $response = $this->actingAs($me)->get(route('posts.index'));
+
+        $this->assertPressed($this->articleOf($response, $liked), 1);
+        $this->assertNotPressed($this->articleOf($response, $notLiked), 0);
     }
 
     public function test_自分のポストにもいいねできる(): void
