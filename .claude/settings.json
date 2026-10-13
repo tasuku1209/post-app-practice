@@ -1,5 +1,14 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(./vendor/bin/sail test *)",
+      "Bash(sail test *)",
+      "Bash(./vendor/bin/sail artisan test *)",
+      "Bash(sail artisan test *)"
+    ],
+    "ask": [
+      "Bash(git push *)"
+    ],
     "deny": [
       "Read(./.env)",
       "Read(./.env.local)"
